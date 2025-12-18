@@ -1,0 +1,84 @@
+<%- include('partials/header.ejs'); -%>
+
+<main class="page">
+  <section class="list-card">
+    <header class="list-header">
+      <h1><%= listTitle %></h1>
+      <p class="list-subtitle"><%= listItems.length %> tasks today</p>
+    </header>
+
+    <div class="list-items">
+      <% for (let item of listItems) { %>
+        <article class="item">
+          <form action="/delete" method="post" class="item-check">
+            <input
+              id="item-<%= item.id %>"
+              type="checkbox"
+              name="deleteItemId"
+              value="<%= item.id %>"
+              onchange="this.form.submit()"
+            >
+          </form>
+
+          <div class="item-content">
+            <p id="title<%=item.id%>" class="item-title">
+              <label for="item-<%= item.id %>"><%= item.title %></label>
+            </p>
+
+            <form class="item-edit-form" action="/edit" method="post">
+              <input type="hidden" name="updatedItemId" value="<%= item.id %>">
+              <input
+                id="input<%=item.id%>"
+                type="text"
+                name="updatedItemTitle"
+                value="<%= item.title %>"
+                autocomplete="off"
+                hidden
+              />
+              <button id="done<%=item.id%>" class="btn-icon btn-save" type="submit" hidden>
+                <img class="icon" src="/assets/icons/check-solid.svg" alt="Save changes">
+              </button>
+            </form>
+          </div>
+
+          <button
+            id="edit<%=item.id%>"
+            class="btn-icon btn-edit"
+            type="button"
+            data-item-id="<%= item.id %>"
+          >
+            <img class="icon" src="/assets/icons/pencil-solid.svg" alt="Edit item">
+          </button>
+        </article>
+      <% } %>
+    </div>
+
+    <form class="item item-new" action="/add" method="post">
+      <input
+        class="item-input"
+        type="text"
+        name="newItem"
+        placeholder="New item"
+        autocomplete="off"
+      />
+      <button class="btn-add" type="submit" name="list" value="<%= listTitle %>">+</button>
+    </form>
+  </section>
+</main>
+
+<script>
+  document.addEventListener("click", (e) => {
+    const editBtn = e.target.closest(".btn-edit");
+    if (!editBtn) return;
+
+    const id = editBtn.dataset.itemId;
+    document.getElementById("title" + id).hidden = true;
+    document.getElementById("edit" + id).hidden = true;
+    
+    document.getElementById("done" + id).hidden = false;
+    document.getElementById("input" + id).hidden = false;
+    document.getElementById("input" + id).focus();
+  });
+</script>
+
+<%- include('partials/footer.ejs'); -%>
