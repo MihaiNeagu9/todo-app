@@ -91,6 +91,24 @@ app.post("/delete", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+// Shutdown
+async function shutdown(signal) {
+  console.log(`\nReceived ${signal}. Shutting down...`);
+  server.close(async () => {
+    try {
+      await db.end();
+      console.log("DB pool closed. Bye!");
+      process.exit(0);
+    } catch (err) {
+      console.error("Error closing pool:", err);
+      process.exit(1);
+    }
+  });
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
