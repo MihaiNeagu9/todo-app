@@ -22,9 +22,22 @@ const db = new Pool({
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+function normalizeTitle(value) {
+  const title = String(value ?? "").trim();
+  if (!title) return null;
+  if (title.length > 200) return null;
+  return title;
+}
+
+function parseId(value) {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return id;
+}
+
 app.get("/", async (req, res) => {
   try {
-    const result = await db.query("SELECT * FROM items");
+    const result = await db.query("SELECT id, title FROM items ORDER BY id DESC");
     res.render("index.ejs", {
       listTitle: "Today",
       listItems: result.rows,
@@ -38,8 +51,10 @@ app.get("/", async (req, res) => {
 
 app.post("/add", async (req, res) => {
   try {
-    const item = req.body.newItem;
-    await db.query("INSERT INTO items(title) VALUES($1)", [item]);
+    const title = normalizeTitle(req.body.newItem);
+    if (!title) return res.status(400).send("Invalid title.");
+
+    await db.query("INSERT INTO items(title) VALUES($1)", [title]);
     res.redirect("/");
   } catch(err) {
     console.log(err);
@@ -50,9 +65,12 @@ app.post("/add", async (req, res) => {
 
 app.post("/edit", async (req, res) => {
   try {
-    const title = req.body.updatedItemTitle;
-    const id = req.body.updatedItemId;
-    await db.query("UPDATE items SET title = $1 WHERE id = $2", [title, id]);
+    const title = normalizeTitle(req.body.updatedItemTitle);
+    const id = parseId(req.body.updatedItemId);
+    if (!title || !id) return res.status(400).send("Invalid date.");
+
+    const result = await db.query("UPDATE items SET title = $1 WHERE id = $2 RETURNING id", [title, id]);
+    if (result.rowCount === 0) return res.status(404).send("Item not found.");
     res.redirect("/");
   } catch(err) {
     console.log(err);
@@ -62,8 +80,10 @@ app.post("/edit", async (req, res) => {
 
 app.post("/delete", async (req, res) => {
   try {
-    const id = req.body.deleteItemId;
-    await db.query("DELETE FROM items WHERE id = $1", [id]);
+    const id = parseId(req.body.deleteItemId);
+    if (!id) return res.status(400).send("Invalid ID.");
+
+    const result = await db.query("DELETE FROM items WHERE id = $1 RETURNING id", [id]);
     res.redirect("/");
   } catch(err) {
     console.log(err);
